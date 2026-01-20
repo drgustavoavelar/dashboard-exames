@@ -1,38 +1,20 @@
-import { type User, type InsertUser } from "@shared/schema";
-import { randomUUID } from "crypto";
-
-// modify the interface with any CRUD methods
-// you might need
+import { dataPoints, type InsertDataPoint, type DataPoint } from "@shared/schema";
+import { db } from "./db";
 
 export interface IStorage {
-  getUser(id: string): Promise<User | undefined>;
-  getUserByUsername(username: string): Promise<User | undefined>;
-  createUser(user: InsertUser): Promise<User>;
+  getDataPoints(): Promise<DataPoint[]>;
+  createDataPoint(point: InsertDataPoint): Promise<DataPoint>;
 }
 
-export class MemStorage implements IStorage {
-  private users: Map<string, User>;
-
-  constructor() {
-    this.users = new Map();
+export class DatabaseStorage implements IStorage {
+  async getDataPoints(): Promise<DataPoint[]> {
+    return await db.select().from(dataPoints);
   }
 
-  async getUser(id: string): Promise<User | undefined> {
-    return this.users.get(id);
-  }
-
-  async getUserByUsername(username: string): Promise<User | undefined> {
-    return Array.from(this.users.values()).find(
-      (user) => user.username === username,
-    );
-  }
-
-  async createUser(insertUser: InsertUser): Promise<User> {
-    const id = randomUUID();
-    const user: User = { ...insertUser, id };
-    this.users.set(id, user);
-    return user;
+  async createDataPoint(insertPoint: InsertDataPoint): Promise<DataPoint> {
+    const [point] = await db.insert(dataPoints).values(insertPoint).returning();
+    return point;
   }
 }
 
-export const storage = new MemStorage();
+export const storage = new DatabaseStorage();
